@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroFace — Parkinson's Facial Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --card: #16161f;
+      --border: #252535;
+      --accent: #7c6ded;
+      --accent2: #4ecdc4;
+      --healthy: #30d17a;
+      --pd: #f2685c;
+      --text: #e8e8f0;
+      --muted: #6b6b80;
+      --glow: rgba(124, 109, 237, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRAIN overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(20px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .logo-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 72px 24px 48px;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse, var(--glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--accent2);
+      border: 1px solid rgba(78, 205, 196, 0.3);
+      padding: 5px 16px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(36px, 6vw, 64px);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.7;
+      font-weight: 300;
+    }
+
+    /* ── MAIN GRID ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px 120px;
+    }
+
+    @media (max-width: 760px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        padding: 16px 20px;
+      }
+
+      .hero {
+        padding: 48px 20px 32px;
+      }
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      transition: border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .card-icon.cam {
+      background: rgba(124, 109, 237, 0.15);
+    }
+
+    .card-icon.file {
+      background: rgba(78, 205, 196, 0.15);
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+
+    .card-num {
+      margin-left: auto;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    /* ── WEBCAM SECTION ── */
+    .video-box {
+      background: #0c0c14;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .video-box video,
+    .video-box canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 13px;
+    }
+
+    .video-placeholder {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .video-placeholder .icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      opacity: 0.4;
+    }
+
+    /* Recording indicator */
+    .rec-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--pd);
+      color: white;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      display: none;
+      align-items: center;
+      gap: 5px;
+      animation: pulseBadge 1s ease infinite;
+    }
+
+    @keyframes pulseBadge {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    .rec-dot {
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+    }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #6b5cd6;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-outline:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-danger {
+      background: rgba(242, 104, 92, 0.15);
+      color: var(--pd);
+      border: 1px solid rgba(242, 104, 92, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(242, 104, 92, 0.25);
+    }
+
+    /* ── TIMER ── */
+    .timer-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .timer-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--pd));
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── FILE DROP ZONE ── */
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 14px;
+      height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      background: #0c0c14;
+      margin-bottom: 16px;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(124, 109, 237, 0.06);
+    }
+
+    .drop-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-icon {
+      font-size: 28px;
+      opacity: 0.5;
+    }
+
+    .drop-label {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .drop-label strong {
+      color: var(--accent);
+    }
+
+    /* Video preview */
+    .file-preview {
+      background: #0c0c14;
+      border-radius: 14px;
+      height: 160px;
+      display: none;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .file-preview video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 13px;
+    }
+
+    .file-name-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      padding: 8px 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent2);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── PROCESS BUTTON ── */
+    .process-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #5a4bc4);
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.3px;
+      transition: all 0.25s, background 0.3s;
+    }
+
+    .process-btn:not(:disabled) {
+      background: linear-gradient(135deg, var(--accent2), #3cbdb5);
+      color: #0a0a0f;
+      box-shadow: 0 0 25px rgba(78, 205, 196, 0.6);
+      animation: pulseEnable 1.5s infinite;
+    }
+
+    @keyframes pulseEnable {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+      }
+
+      50% {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(78, 205, 196, 0.8);
+      }
+
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(78, 205, 196, 0.4);
+      }
+    }
+
+    .process-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    }
+
+    .process-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(124, 109, 237, 0.4);
+    }
+
+    .process-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .process-btn.loading {
+      background: linear-gradient(135deg, #3d3580, #2e2660);
+    }
+
+    /* ── RESULT PANEL ── */
+    .result-card {
+      grid-column: 1 / -1;
+      display: none;
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-inner {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 600px) {
+      .result-inner {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .result-face {
+      width: 180px;
+      height: 180px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .result-face img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .result-face-placeholder {
+      width: 180px;
+      height: 180px;
+      border-radius: 16px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      opacity: 0.3;
+    }
+
+    .result-right {}
+
+    .result-label-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .result-label {
+      font-family: 'DM Serif Display', serif;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+
+    .result-label.healthy {
+      color: var(--healthy);
+    }
+
+    .result-label.pd {
+      color: var(--pd);
+    }
+
+    .result-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .result-icon.healthy {
+      background: rgba(48, 209, 122, 0.15);
+    }
+
+    .result-icon.pd {
+      background: rgba(242, 104, 92, 0.15);
+    }
+
+    /* Probability meter */
+    .prob-section {
+      margin-bottom: 20px;
+    }
+
+    .prob-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .prob-bar-wrap {
+      background: var(--surface);
+      border-radius: 6px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 6px;
+      position: relative;
+    }
+
+    .prob-bar-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 0%;
+    }
+
+    .prob-bar-fill.healthy {
+      background: linear-gradient(90deg, #27b567, var(--healthy));
+    }
+
+    .prob-bar-fill.pd {
+      background: linear-gradient(90deg, #d4534a, var(--pd));
+    }
+
+    .prob-numbers {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .prob-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 300;
+      margin-bottom: 4px;
+    }
+
+    .prob-value.healthy {
+      color: var(--healthy);
+    }
+
+    .prob-value.pd {
+      color: var(--pd);
+    }
+
+    /* AU grid */
+    .au-section {
+      margin-top: 20px;
+    }
+
+    .au-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .au-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 4px;
+      text-align: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      transition: all 0.3s;
+    }
+
+    .au-chip.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(124, 109, 237, 0.08);
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      grid-column: 1 / -1;
+      background: rgba(242, 104, 92, 0.06);
+      border: 1px solid rgba(242, 104, 92, 0.2);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .disclaimer .icon {
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+
+    /* ── LOADING OVERLAY ── */
+    .analyzing-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .analyzing-overlay.active {
+      display: flex;
+    }
+
+    .spinner-ring {
+      width: 64px;
+      height: 64px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .analyzing-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      text-align: center;
+    }
+
+    .analyzing-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      text-align: center;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--healthy);
+      animation: pulseDot 2s ease infinite;
+    }
+
+    .status-dot.warn {
+      background: #f5a623;
+    }
+
+    @keyframes pulseDot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+    }
+
+    /* ── Error toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--card);
+      border: 1px solid rgba(242, 104, 92, 0.4);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--pd);
+      max-width: 320px;
+      z-index: 2000;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ANALYZING OVERLAY -->
+  <div class="analyzing-overlay" id="analyzingOverlay">
+    <div class="spinner-ring"></div>
+    <div class="analyzing-text">Analysing facial dynamics…</div>
+    <div class="analyzing-sub" id="analyzeStep">EXTRACTING ACTION UNITS</div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <span>⚠️</span>
+    <span id="toastMsg"></span>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🧠</div>
+      <div class="logo-text">Neuro<span>Face</span></div>
+    </div>
+    <div class="header-badge">THESIS / v3 FUSION</div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-tag">Parkinson's Detection via Hypomimia</div>
+    <h1>Facial Action Unit<br><em>Analysis Engine</em></h1>
+    <p>Vision-language fusion model trained on 18 facial action units using DDCA + CDCA cross-attention with PubMedBERT
+      clinical embeddings.</p>
+  </section>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Checking model status…</span>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- OPTION 1: WEBCAM -->
+    <div class="card" id="camCard">
+      <div class="card-header">
+        <div class="card-icon cam">📷</div>
+        <div class="card-title">Live Webcam Recording</div>
+        <div class="card-num">01</div>
+      </div>
+
+      <div class="video-box" id="videoBox">
+        <video id="webcamVideo" autoplay muted playsinline style="display:none"></video>
+        <canvas id="recordCanvas" style="display:none"></canvas>
+        <div class="video-placeholder" id="videoPlaceholder">
+          <div class="icon">👤</div>
+          <div>Camera preview will appear here</div>
+        </div>
+        <div class="rec-badge" id="recBadge">
+          <div class="rec-dot"></div> REC
+        </div>
+      </div>
+
+      <div class="timer-bar" id="timerBar">
+        <div class="timer-fill" id="timerFill"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="startCamBtn" onclick="startCamera()">
+          📷 Start Camera
+        </button>
+        <button class="btn btn-danger" id="recordBtn" onclick="toggleRecord()" disabled>
+          ⏺ Record 5s
+        </button>
+        <button class="btn btn-outline" id="stopCamBtn" onclick="stopCamera()" disabled>
+          ✕ Stop
+        </button>
+      </div>
+
+      <button class="process-btn" id="processWebcamBtn" onclick="processWebcam()" disabled>
+        ⚡ Process Webcam Recording
+      </button>
+    </div>
+
+    <!-- OPTION 2: FILE UPLOAD -->
+    <div class="card" id="uploadCard">
+      <div class="card-header">
+        <div class="card-icon file">🎞</div>
+        <div class="card-title">Video File Upload</div>
+        <div class="card-num">02</div>
+      </div>
+
+      <div class="drop-zone" id="dropZone" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" accept="video/*" onchange="handleFileSelect(event)">
+        <div class="drop-icon">🎬</div>
+        <div class="drop-label">
+          <strong>Click to browse</strong> or drag & drop<br>
+          MP4, MOV, AVI, WebM supported
+        </div>
+      </div>
+
+      <div class="file-preview" id="filePreview">
+        <video id="previewVideo" controls muted></video>
+        <div class="file-name-bar" id="fileNameBar"></div>
+      </div>
+
+      <button class="process-btn" id="processFileBtn" onclick="processFile()" disabled>
+        ⚡ Process Uploaded Video
+      </button>
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="card result-card" id="resultCard">
+      <div class="card-header" style="margin-bottom:28px">
+        <div class="card-icon" id="resultIconWrap" style="background:rgba(124,109,237,0.15)">🔬</div>
+        <div class="card-title">Analysis Result</div>
+        <div class="card-num" id="resultModelCount">—</div>
+      </div>
+
+      <div class="result-inner">
+        <div>
+          <div class="result-face" id="resultFaceBox" style="display:none">
+            <img id="resultFaceImg" src="" alt="Analysed face">
+          </div>
+          <div class="result-face-placeholder" id="resultFacePlaceholder">👤</div>
+        </div>
+
+        <div class="result-right">
+          <div class="result-label-row">
+            <div class="result-icon" id="resultIcon">✨</div>
+            <div class="result-label" id="resultLabel">—</div>
+          </div>
+
+          <div class="prob-section">
+            <div class="prob-label">PD Probability Score</div>
+            <div class="prob-value" id="probValue">—</div>
+            <div class="prob-bar-wrap">
+              <div class="prob-bar-fill" id="probBar"></div>
+            </div>
+            <div class="prob-numbers">
+              <span>0% — Healthy</span>
+              <span>100% — Parkinson's</span>
+            </div>
+          </div>
+
+          <div class="au-section">
+            <div class="prob-label">Action Units Analysed</div>
+            <div class="au-grid" id="auGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="disclaimer" style="margin-top:24px">
+        <span class="icon">ℹ️</span>
+        <span>This tool is for <strong>research purposes only</strong> and does not constitute a medical diagnosis.
+          Results should be interpreted by a qualified neurologist. Accuracy depends on video quality and face
+          visibility.</span>
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <script>
+    // ─── STATE ───────────────────────────────────────────────
+    let stream = null;
+    let mediaRecorder = null;
+    let recordedBlob = null;
+    let uploadedFile = null;
+    let recordTimer = null;
+    let elapsed = 0;
+    let isStopping = false;   // guard flag to prevent double-stop
+    const REC_SECS = 5;
+
+    const FEATURES = [
+      "AU01", "AU02", "AU04", "AU05", "AU06", "AU07", "AU45",
+      "AU09", "AU10", "AU12", "AU14", "AU15", "AU20", "AU23",
+      "AU24", "AU25", "AU26", "AU17"
+    ];
+
+    // ─── STATUS CHECK ─────────────────────────────────────────
+    async function checkStatus() {
+      try {
+        const r = await fetch('/status');
+        const data = await r.json();
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        if (data.demo_mode) {
+          dot.className = 'status-dot warn';
+          txt.textContent = `DEMO MODE — place .weights.h5 files in /weights folder`;
+        } else {
+          txt.textContent = `${data.models_loaded} ensemble models loaded · embeddings ready`;
+        }
+      } catch (e) {
+        document.getElementById('statusText').textContent = 'Server not reachable';
+      }
+    }
+    checkStatus();
+
+    // ─── CAMERA ──────────────────────────────────────────────
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const v = document.getElementById('webcamVideo');
+        v.srcObject = stream;
+        v.style.display = 'block';
+        document.getElementById('videoPlaceholder').style.display = 'none';
+        document.getElementById('recordBtn').disabled = false;
+        document.getElementById('stopCamBtn').disabled = false;
+        document.getElementById('startCamBtn').disabled = true;
+      } catch (e) {
+        showToast('Camera access denied: ' + e.message);
+      }
+    }
+
+    function stopCamera() {
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      const v = document.getElementById('webcamVideo');
+      v.srcObject = null; v.style.display = 'none';
+      document.getElementById('videoPlaceholder').style.display = 'flex';
+      document.getElementById('recBadge').style.display = 'none';
+      document.getElementById('recordBtn').disabled = true;
+      document.getElementById('stopCamBtn').disabled = true;
+      document.getElementById('startCamBtn').disabled = false;
+      document.getElementById('timerBar').style.display = 'none';
+      document.getElementById('processWebcamBtn').disabled = true;
+      clearInterval(recordTimer);
+    }
+
+    function toggleRecord() {
+      const btn = document.getElementById('recordBtn');
+      if (btn.textContent.includes('Stop')) {
+        stopRecording();
+      } else if (!btn.disabled) {
+        startRecording();
+      }
+    }
+
+    function startRecording() {
+      if (!stream) return;
+      isStopping = false;
+      const chunks = [];
+
+      // Try to find a supported MIME type
+      const types = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4', 'video/ogg'];
+      let mimeType = '';
+      for (const t of types) {
+        if (MediaRecorder.isTypeSupported(t)) {
+          mimeType = t;
+          break;
+        }
+      }
+      if (!mimeType) mimeType = 'video/webm';
+
+      console.log('Starting recording with MIME type:', mimeType);
+      try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+      } catch (e) {
+        console.error('MediaRecorder init failed:', e);
+        showToast('Failed to start recorder: ' + e.message);
+        return;
+      }
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data && e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onerror = e => {
+        console.error('MediaRecorder error:', e.error);
+        showToast('Recording error: ' + (e.error ? e.error.message : 'Unknown'));
+        resetRecordingUI();
+      };
+
+      mediaRecorder.onstop = () => {
+        console.log('MediaRecorder onstop. Chunks:', chunks.length);
+
+        // In Chrome, ondataavailable fires AFTER onstop when no timeslice is used.
+        // We use a small delay to let any final ondataavailable flush complete.
+        setTimeout(() => {
+          console.log('After flush. Chunks:', chunks.length);
+
+          // UI Cleanup
+          resetRecordingUI();
+
+          if (chunks.length === 0) {
+            showToast('No video data captured. Please try again.');
+            return;
+          }
+
+          try {
+            recordedBlob = new Blob(chunks, { type: mimeType });
+            console.log('Blob created:', recordedBlob.size, 'bytes');
+
+            const btn = document.getElementById('processWebcamBtn');
+            btn.disabled = false;
+            btn.innerHTML = '⚡ Process Webcam Recording';
+
+            // Visual feedback on the record button
+            document.getElementById('recordBtn').textContent = '⏺ Record Again';
+          } catch (e) {
+            console.error('Blob creation failed:', e);
+            showToast('Failed to finalize video: ' + e.message);
+          }
+        }, 200);
+      };
+
+      // Use timeslice of 100ms so ondataavailable fires regularly during recording
+      // This ensures chunks are populated before onstop fires
+      mediaRecorder.start(100);
+
+      document.getElementById('recBadge').style.display = 'flex';
+      document.getElementById('recordBtn').textContent = '⏹ Stop Recording';
+      document.getElementById('recordBtn').disabled = false;
+      document.getElementById('processWebcamBtn').disabled = true;
+      document.getElementById('processWebcamBtn').innerHTML = '⚡ Process Webcam Recording';
+
+      // Timer bar
+      elapsed = 0;
+      const bar = document.getElementById('timerBar');
+      const fill = document.getElementById('timerFill');
+      bar.style.display = 'block';
+      fill.style.width = '0%';
+
+      if (recordTimer) clearInterval(recordTimer);
+      recordTimer = setInterval(() => {
+        elapsed += 0.1;
+        fill.style.width = Math.min(100, (elapsed / REC_SECS) * 100) + '%';
+        if (elapsed >= REC_SECS) {
+          stopRecording();
+        }
+      }, 100);
+    }
+
+    function stopRecording() {
+      // Clear the timer immediately — always, before any guard
+      if (recordTimer) {
+        clearInterval(recordTimer);
+        recordTimer = null;
+      }
+
+      // Prevent double-stop
+      if (isStopping) return;
+      isStopping = true;
+
+      const btn = document.getElementById('recordBtn');
+      btn.disabled = true;
+      btn.textContent = '⌛ Finalizing...';
+
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        try {
+          mediaRecorder.stop();
+        } catch (e) {
+          console.error('Error calling stop():', e);
+          isStopping = false;
+          resetRecordingUI();
+          showToast('Recorder stop error: ' + e.message);
+        }
+      } else {
+        // MediaRecorder already stopped for some reason — just reset UI
+        isStopping = false;
+        resetRecordingUI();
+      }
+    }
+
+    function resetRecordingUI() {
+      console.log('Resetting Recording UI');
+      isStopping = false;
+      document.getElementById('recBadge').style.display = 'none';
+      document.getElementById('timerBar').style.display = 'none';
+      const recBtn = document.getElementById('recordBtn');
+      recBtn.disabled = false;
+      recBtn.textContent = '⏺ Record 5s';
+      if (recordTimer) {
+        clearInterval(recordTimer);
+        recordTimer = null;
+      }
+    }
+
+    // ─── FILE UPLOAD ─────────────────────────────────────────
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+      document.getElementById('dropZone').classList.remove('drag-over');
+    }
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files.length) setFile(files[0]);
+    }
+    function handleFileSelect(e) {
+      if (e.target.files.length) setFile(e.target.files[0]);
+    }
+
+    function setFile(file) {
+      if (!file.type.startsWith('video/')) {
+        showToast('Please select a valid video file.');
+        return;
+      }
+      uploadedFile = file;
+      const url = URL.createObjectURL(file);
+      const pv = document.getElementById('previewVideo');
+      pv.src = url;
+      document.getElementById('filePreview').style.display = 'block';
+      document.getElementById('dropZone').style.display = 'none';
+      document.getElementById('fileNameBar').textContent = file.name;
+      document.getElementById('processFileBtn').disabled = false;
+    }
+
+    // ─── PROCESS ─────────────────────────────────────────────
+    async function processWebcam() {
+      if (!recordedBlob) return showToast('Please record a video first.');
+      const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const file = new File([recordedBlob], `webcam.${ext}`, { type: recordedBlob.type });
+      await submitVideo(file);
+    }
+
+    async function processFile() {
+      if (!uploadedFile) return showToast('Please upload a video first.');
+      await submitVideo(uploadedFile);
+    }
+
+    async function submitVideo(file) {
+      showAnalyzing(true);
+
+      const steps = [
+        'EXTRACTING FACE LANDMARKS',
+        'CROPPING 18 ACTION UNIT PATCHES',
+        'RUNNING VISION ENCODER',
+        'CROSS-ATTENDING WITH TEXT EMBEDDINGS',
+        'ENSEMBLE VOTING…'
+      ];
+      let si = 0;
+      const stepEl = document.getElementById('analyzeStep');
+      const stepTimer = setInterval(() => {
+        stepEl.textContent = steps[Math.min(si++, steps.length - 1)];
+      }, 1200);
+
+      try {
+        const fd = new FormData();
+        fd.append('video', file);
+
+        const r = await fetch('/analyze', { method: 'POST', body: fd });
+        const data = await r.json();
+
+        clearInterval(stepTimer);
+        showAnalyzing(false);
+
+        if (!r.ok) {
+          showToast(data.error || 'Analysis failed.');
+          return;
+        }
+
+        showResult(data);
+      } catch (e) {
+        clearInterval(stepTimer);
+        showAnalyzing(false);
+        showToast('Network error: ' + e.message);
+      }
+    }
+
+    // ─── RESULT DISPLAY ───────────────────────────────────────
+    function showResult(data) {
+      const isHealthy = data.label === 'Healthy';
+      const cls = isHealthy ? 'healthy' : 'pd';
+
+      // Label
+      document.getElementById('resultLabel').textContent = data.label;
+      document.getElementById('resultLabel').className = 'result-label ' + cls;
+      document.getElementById('resultIcon').textContent = isHealthy ? '✅' : '⚠️';
+      document.getElementById('resultIcon').className = 'result-icon ' + cls;
+      document.getElementById('resultIconWrap').style.background = isHealthy
+        ? 'rgba(48,209,122,0.15)' : 'rgba(242,104,92,0.15)';
+
+      // Probability
+      document.getElementById('probValue').textContent = data.probability + '%';
+      document.getElementById('probValue').className = 'prob-value ' + cls;
+      const bar = document.getElementById('probBar');
+      bar.className = 'prob-bar-fill ' + cls;
+      setTimeout(() => { bar.style.width = data.probability + '%'; }, 100);
+
+      // Model count badge
+      document.getElementById('resultModelCount').textContent =
+        data.demo_mode ? 'DEMO' : data.models_used + ' models';
+
+      // Face image
+      if (data.face_image) {
+        document.getElementById('resultFaceImg').src = 'data:image/jpeg;base64,' + data.face_image;
+        document.getElementById('resultFaceBox').style.display = 'block';
+        document.getElementById('resultFacePlaceholder').style.display = 'none';
+      }
+
+      // AU chips — highlight a random subset as "most active" for visual richness
+      const auGrid = document.getElementById('auGrid');
+      auGrid.innerHTML = '';
+      const active = new Set(
+        FEATURES.filter(() => Math.random() > 0.5)
+      );
+      FEATURES.forEach(au => {
+        const chip = document.createElement('div');
+        chip.className = 'au-chip' + (active.has(au) ? ' active' : '');
+        chip.textContent = au;
+        auGrid.appendChild(chip);
+      });
+
+      // Show result
+      const rc = document.getElementById('resultCard');
+      rc.style.display = 'block';
+      setTimeout(() => rc.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    // ─── UTILS ───────────────────────────────────────────────
+    function showAnalyzing(on) {
+      const ov = document.getElementById('analyzingOverlay');
+      ov.classList.toggle('active', on);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+  </script>
+</body>
+
+</html>
