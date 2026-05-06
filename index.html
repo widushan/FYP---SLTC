@@ -4,24 +4,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeuroFace — Parkinson's Facial Analysis</title>
+  <title>NeuroVista — Parkinson Disease Detection</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap"
     rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --card: #16161f;
-      --border: #252535;
-      --accent: #7c6ded;
-      --accent2: #4ecdc4;
-      --healthy: #30d17a;
-      --pd: #f2685c;
-      --text: #e8e8f0;
-      --muted: #6b6b80;
-      --glow: rgba(124, 109, 237, 0.18);
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --accent: #6366f1;
+      --accent2: #0d9488;
+      --healthy: #10b981;
+      --pd: #ef4444;
+      --text: #0f172a;
+      --muted: #64748b;
+      --glow: rgba(99, 102, 241, 0.1);
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
     }
 
     * {
@@ -43,10 +44,10 @@
       content: '';
       position: fixed;
       inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 9999;
-      opacity: 0.6;
+      opacity: 0.4;
     }
 
     /* ── HEADER ── */
@@ -59,7 +60,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(10, 10, 15, 0.85);
+      background: rgba(255, 255, 255, 0.8);
       backdrop-filter: blur(20px);
     }
 
@@ -188,9 +189,10 @@
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 28px;
-      transition: border-color 0.3s;
+      transition: all 0.3s;
       position: relative;
       overflow: hidden;
+      box-shadow: var(--shadow);
     }
 
     .card::before {
@@ -253,7 +255,7 @@
 
     /* ── WEBCAM SECTION ── */
     .video-box {
-      background: #0c0c14;
+      background: #f1f5f9;
       border: 1px dashed var(--border);
       border-radius: 14px;
       height: 200px;
@@ -417,7 +419,7 @@
       cursor: pointer;
       transition: all 0.25s;
       position: relative;
-      background: #0c0c14;
+      background: #f1f5f9;
       margin-bottom: 16px;
     }
 
@@ -452,7 +454,7 @@
 
     /* Video preview */
     .file-preview {
-      background: #0c0c14;
+      background: #f1f5f9;
       border-radius: 14px;
       height: 160px;
       display: none;
@@ -473,15 +475,16 @@
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(255, 255, 255, 0.8);
       backdrop-filter: blur(8px);
       padding: 8px 12px;
       font-family: 'DM Mono', monospace;
       font-size: 11px;
-      color: var(--accent2);
+      color: var(--accent);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      border-top: 1px solid var(--border);
     }
 
     /* ── PROCESS BUTTON ── */
@@ -505,8 +508,8 @@
 
     .process-btn:not(:disabled) {
       background: linear-gradient(135deg, var(--accent2), #3cbdb5);
-      color: #0a0a0f;
-      box-shadow: 0 0 25px rgba(78, 205, 196, 0.6);
+      color: white;
+      box-shadow: 0 0 25px rgba(78, 205, 196, 0.3);
       animation: pulseEnable 1.5s infinite;
     }
 
@@ -669,12 +672,13 @@
     }
 
     .prob-bar-wrap {
-      background: var(--surface);
+      background: #f1f5f9;
       border-radius: 6px;
       height: 10px;
       overflow: hidden;
       margin-bottom: 6px;
       position: relative;
+      border: 1px solid var(--border);
     }
 
     .prob-bar-fill {
@@ -728,7 +732,7 @@
     }
 
     .au-chip {
-      background: var(--surface);
+      background: #f8fafc;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 6px 4px;
@@ -770,7 +774,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(10, 10, 15, 0.85);
+      background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(12px);
       z-index: 1000;
       align-items: center;
@@ -898,17 +902,17 @@
   <header>
     <div class="logo">
       <div class="logo-icon">🧠</div>
-      <div class="logo-text">Neuro<span>Face</span></div>
+      <div class="logo-text">Neuro<span>Vista</span></div>
     </div>
-    <div class="header-badge">THESIS / v3 FUSION</div>
+    <div class="header-badge"></div>
   </header>
 
   <!-- HERO -->
   <section class="hero">
     <div class="hero-tag">Parkinson's Detection via Hypomimia</div>
-    <h1>Facial Action Unit<br><em>Analysis Engine</em></h1>
-    <p>Vision-language fusion model trained on 18 facial action units using DDCA + CDCA cross-attention with PubMedBERT
-      clinical embeddings.</p>
+    <h1>Parkinson / Healthy<br><em>Detection Engine</em></h1>
+    <p>Advanced AI-powered facial action units analysis for early detection of Parkinson's disease through subtle facial
+      movement patterns.</p>
   </section>
 
   <!-- STATUS BAR -->
